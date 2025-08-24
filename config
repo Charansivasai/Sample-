@@ -1,0 +1,25 @@
+    {{ config(
+        materialized='incremental',
+        unique_key='your_unique_id_column', -- e.g., 'id' or 'record_timestamp'
+        incremental_strategy='merge'
+    ) }}
+
+    SELECT
+        column1,
+        column2,
+        -- ...
+        record_timestamp -- Assuming a timestamp column for incremental logic
+    FROM
+        @my_local_data_stage/day1_data.csv -- Initial load from Day 1
+    {% if is_incremental() %}
+    UNION ALL
+    SELECT
+        column1,
+        column2,
+        -- ...
+        record_timestamp
+    FROM
+        @my_local_data_stage/day2_data.csv -- Subsequent loads from Day 2 and onwards
+    WHERE
+        record_timestamp > (SELECT MAX(record_timestamp) FROM {{ this }})
+    {% endif %}
